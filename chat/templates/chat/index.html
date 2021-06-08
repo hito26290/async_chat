@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>index</title>
+</head>
+<body>
+<h1>チャットルーム一覧</h1>
+
+<form action="">
+    名前 : <input type="text" id="input_name" autocomplete="off" autofocus />
+</form>
+
+<form action="" onsubmit="onsubmitButton_createRoom(); return false;">
+    ルーム名を選択し入室する : 
+    <select id="create_room">
+    <option value='room1'>room1</option>
+    <option value='room2'>room2</option>
+    <option value='room3'>room3</option>
+    <option value='room4'>room4</option>
+    <option value='room5'>room5</option>
+    <input type="submit" value="入室" />
+</form>
+
+<!--
+<form action="" onsubmit="onsubmitButton_createRoom(); return false;">
+    ルーム名を入力し入室する : <input type="text" id="create_room" autocomplete="off" autofocus /><input type="submit" value="入室" />
+</form>
+-->
+
+<script>
+    const g_userName = document.getElementById('input_name');
+    const g_newRoom = document.getElementById('create_room');
+
+    function onsubmitButton_Room()
+    {
+        name = g_userName.value
+        if (name != '') {
+            
+            url = g_roomList.value + '?name=' + name;
+            document.location.href = url;
+        } else {
+            alert('名前を入力してください')
+        }
+    }
+
+    function onsubmitButton_createRoom()
+    {
+        name = g_userName.value
+        if (name != '') {
+                url = g_newRoom.value + '?name=' + name;
+                document.location.href = url;
+        } else {
+            alert('名前を入力してください');
+        }
+    }
+
+
+
+</script>
+</body>
+</html>

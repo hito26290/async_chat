@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>chatroom</title>
+</head>
+<body>
+<h1>chatroom</h1>
+
+<button onclick="onclickButton_leaveChat()">退出する</button><br/>
+<form action="" onsubmit="onsubmitButton_Send(); return false;">
+    名前 : <input type="text" id="user_name" readonly /><br>
+    メッセージ : <input type="text" id="input_message" autocomplete="off" autofocus /><input type="submit" value="送信" /><br>
+    画像 : <input type="file" id="input_image">
+</form>
+
+<p>参加人数<span class='numberOfPeople'>x</span>人</p>
+<ul id='listOfParticipants'></ul>
+<hr>
+<ul id='messageList'></ul>
+
+{{ room_name|json_script:"room-name" }}
+<script>
+    const roomName = JSON.parse(document.getElementById('room-name').textContent);
+    const g_h1 = document.querySelector('h1')
+    const g_messageList = document.getElementById('messageList');
+    const g_inputMessage = document.getElementById('input_message');
+    const g_inputImage = document.getElementById('input_image');
+    const g_people = document.querySelector('.numberOfPeople');
+    const g_members = document.getElementById('listOfParticipants')
+    const g_userName = document.getElementById('user_name');
+
+    let imageBase64 = ""; // Base64形式に変換した画像を代入する変数
+
+    function getQueryVariable(variable) {
+        var query = window.location.search.substring(1);
+        var vars = query.split("&");
+        for (var i=0;i<vars.length;i++) {
+            var pair = vars[i].split("=");
+            if (pair[0] == variable) {
+                return pair[1];
+            }
+        }
+    }
+
+    name = getQueryVariable('name');
+    name = decodeURIComponent(name);
+
+    if (name == 'undefined'){
+        document.location.href = '/';
+    } else {
+
+        g_userName.value = name
+    }
+
+    g_h1.textContent = roomName
+    
+    let ws_scheme = window.location.protocol == 'https:' ? 'wss' : 'ws';
+    const g_socket = new WebSocket(ws_scheme + '://' + window.location.host + '/ws/chat/');
+
+    g_socket.onopen = () => g_socket.send( JSON.stringify( { "data_type": "join", "roomname": roomName, "username": name } ) );
+    
+    g_inputImage.addEventListener('change', (e) => {
+        // 画像ファイルを取得し、画像データ(URL)を変数に代入
+        const imageFile = e.target.files[0];
+        const imageURL = window.URL.createObjectURL(imageFile);
+        // img要素を作成し、src属性に画像のURLを指定
+        const imageElement = new Image();
+        imageElement.src = imageURL;
+
+        imageElement.onload = function() {
+            // canvas要素を作成し、img要素を描画
+            const canvasElement = document.createElement('canvas');
+            canvasElement.width = imageElement.width;
+            canvasElement.height = imageElement.height;
+            const canvasContext = canvasElement.getContext('2d');
+            canvasContext.drawImage(imageElement, 0, 0);
+            // canvas要素をbase64形式に変換
+            imageBase64 = canvasElement.toDataURL("image/png");
+        };
+    });
+
+    function onclickButton_leaveChat()
+    {
+        document.location.href = '/';
+    }
+    
+
+    function onsubmitButton_Send()
+    {
+        let message = g_inputMessage.value;
+        if( message == "" && imageBase64 == "" )
+        {
+            return;
+        }
+
+        g_socket.send( JSON.stringify( { "data_type": "message", "message": message, "image": imageBase64 } ) );
+
+        g_inputMessage.value = "";
+        g_inputImage.value = "";
+        imageBase64 = "";
+    }
+
+    g_socket.onmessage = ( event ) =>
+    {
+
+        let data = JSON.parse( event.data );
+
+        if (data['data_type'] == 'message')
+        {
+            let message = data['username'] + '>' + data["message"] + ' - (' + data['datetime'] + ')';
+            let elementLi = document.createElement( "li" );
+            elementLi.textContent = message;
+            if (data["image"]){
+                let image = document.createElement('img');
+                image.setAttribute('src', data["image"]);
+                g_messageList.prepend( image );
+            }
+                
+            g_messageList.prepend( elementLi );
+
+        } else if (data['data_type'] == 'member')
+        {
+
+            let memberList = data['members'];
+            while (g_members.firstChild)
+            {
+                g_members.removeChild(g_members.firstChild);
+            }
+            for (let member in memberList){
+                let elementLi = document.createElement( "li" );
+                elementLi.textContent = memberList[member];
+                g_members.append(elementLi);
+            }
+           g_people.textContent = memberList.length;
+           
+        }
+         
+    };
+
+
+    g_socket.onclose = ( event ) =>
+    {
+        console.error( "Unexpected : Chat socket closed." );
+    };
+
+</script>
+</body>
+</html>
